@@ -10,6 +10,12 @@ const logger = require('morgan');
 const serveFavicon = require('serve-favicon');
 const mongoose = require('mongoose');
 const baseRouter = require('./routes/base');
+const expressSession = require('express-session');
+const MongoStore = require('connect-mongo');
+const index = require('./routes/publicRoutes/index');
+const auth = require('./routes/publicRoutes/auth');
+const main = require('./routes/privateRoutes/main');
+const private = require('./routes/privateRoutes/private');
 
 const app = express();
 
@@ -21,7 +27,26 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(logger('dev'));
 app.use(express.urlencoded({ extended: true }));
 
+app.use(
+  expressSession({
+    secret: 'dfdgasdlfklASKDFNLDFA',
+    resave: true,
+    saveUninitialized: false,
+    cookie: {
+      maxAge: 1000 * 60 * 60 * 24 * 15
+    },
+    store: new MongoStore({
+      mongoUrl: process.env.MONGODB_URI,
+      ttl: 60 * 60 * 24
+    })
+  })
+);
+
 app.use('/', baseRouter);
+app.use('/', index);
+app.use('/', authRoutes);
+app.use('/', main);
+app.use('/', private);
 
 // Catch missing routes and forward to error handler
 app.use((req, res, next) => {
